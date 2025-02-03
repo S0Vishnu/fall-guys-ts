@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Hexagon } from "./Hexagon";
 import { RPC } from "playroomkit";
 
@@ -26,16 +26,17 @@ export default function GameArena() {
   const [hexagonHit, setHexagonHit] = useState<HexagonHitState>({});
 
   // Register a callback for the "hexagonHit" RPC event
-  RPC.register("hexagonHit", async (data: { hexagonKey: string }) => {
-    // Update the state to mark the hexagon as hit
-    setHexagonHit((prev) => ({
-      ...prev,
-      [data.hexagonKey]: true,
-    }));
-
-    // Return a resolved Promise to satisfy the RPCCallback type requirement
-    return Promise.resolve();
-  });
+  useEffect(() => {
+    // Register the RPC event listener once
+    RPC.register("hexagonHit", async (data: { hexagonKey: string }) => {
+      setHexagonHit((prev) => ({
+        ...prev,
+        [data.hexagonKey]: true,
+      }));
+      return Promise.resolve();
+    });
+    return;
+  }, []); // Empty dependency array ensures this effect runs only once
 
   return (
     <group

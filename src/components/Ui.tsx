@@ -4,8 +4,8 @@ import { useGameState } from "../hooks/useGameState";
 export const UI = () => {
   const { audioEnabled, setAudioEnabled } = useAudioManager();
 
-  const { timer, startGame, host, gameStage } = useGameState();
-
+  const { timer, startGame, host, gameStage, players } = useGameState();
+  console.log(players);
   return (
     <main
       style={{
@@ -29,16 +29,54 @@ export const UI = () => {
         <div
           style={{
             position: "fixed",
-            top: "calc(50% - 20px)",
+            top: "50%",
             left: "50%",
-            transform: "trasnlate(-50%,-50%)",
+            transform: "translate(-50%, -50%)",
           }}
         >
-          {host ? (
-            <button onClick={startGame}>Start</button>
-          ) : (
-            <p>Waiting for the host to start the game...</p>
-          )}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <div
+              className="plaers"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {players?.map((player) => (
+                <div
+                  key={player.state.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "12px",
+                  }}
+                >
+                  <img
+                    src={player.state?.state.profile?.photo}
+                    style={{ height: "34px" }}
+                  />
+                  <p>{player.state?.state.profile?.name}</p>
+                </div>
+              ))}
+            </div>
+            {host ? (
+              <button onClick={startGame}>Start</button>
+            ) : (
+              <p>Waiting for the host to start the game...</p>
+            )}
+          </div>
         </div>
       )}
       <button

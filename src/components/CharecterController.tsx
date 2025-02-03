@@ -1,4 +1,10 @@
-import { CapsuleCollider, euler, quat, RigidBody } from "@react-three/rapier";
+import {
+  CapsuleCollider,
+  euler,
+  quat,
+  RigidBody,
+  vec3,
+} from "@react-three/rapier";
 import React, { useRef, useState } from "react";
 import { Character } from "./Charecter";
 import { useKeyboardControls } from "@react-three/drei";
@@ -18,6 +24,8 @@ interface CharacterControllerProps {
   [key: string]: any; // This allows for other props to be passed to the component
 }
 
+type Animation = "idle" | "jump_up" | "fall" | "run" | "wave";
+
 const MOVEMENT_SPEED = 4.2;
 const JUMP_FORCE = 8;
 const ROTATION_SPEED = 2.5;
@@ -30,21 +38,36 @@ const CharacterController: React.FC<CharacterControllerProps> = ({
   state,
   ...props
 }) => {
-
   const { playAudio } = useAudioManager();
-  const rb = useRef<any>();
-  const [, get] = useKeyboardControls();
-
-  // const isDead = state.getState("dead");
-  const [animation, setAnimation] = useState("idle");
   const { gameStage } = useGameState();
+  const rb = useRef<any>();
+  const isDead = state.getState("dead");
+  const [, get] = useKeyboardControls();
+  const [animation, setAnimation] = useState<Animation>("idle");
+  const cameraPosition = useRef<any>();
+  const cameraLookAt = useRef<Vector3 | null>(null);
 
   const inTheAir = useRef(true);
   const landed = useRef(false);
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     if (gameStage === "lobby") return;
-    if (gameStage === "game") return;
+
+    if (player && !isDead) {
+      const rbPosition = vec3(rb.current.translation());
+      if (!cameraLookAt.current) {
+        cameraLookAt.current = rbPosition;
+      }
+      cameraLookAt.current.lerp(rbPosition, 0.5);
+      camera.lookAt(cameraLookAt.current);
+      const worldPos = rbPosition;
+      cameraPosition.current.getWorldPosition(worldPos);
+      camera.position.lerp(worldPos, 0.05);
+    }
+
+    if (gameStage !== "game") return;
+
+    console.log("frame");
 
     if (!player) {
       const pos = state.getState("pos");
@@ -104,6 +127,7 @@ const CharacterController: React.FC<CharacterControllerProps> = ({
     // apply rotation to x and z to go in the right direction
     const eulerRot = euler().setFromQuaternion(quat(rb.current.rotation()));
     vel.applyEuler(eulerRot);
+
     if (
       (get()[Controls.jump] || controls.isPressed("Jump")) &&
       !inTheAir.current &&
@@ -151,24 +175,39 @@ const CharacterController: React.FC<CharacterControllerProps> = ({
     }
   });
 
-  // const startingPos = state.getState("startingPos");
-  // if (isDead || !startingPos) {
-  //   return null;
-  // }
+  const startingPos = state.getState("startingPos");
+  if (isDead || !startingPos) {
+    return null;
+  }
 
   return (
     <RigidBody
       {...props}
+      position-x={startingPos.x}
+      position-z={startingPos.z}
       colliders={false}
       canSleep={false}
       enabledRotations={[false, true, false]}
       ref={rb}
+      onCollisionEnter={(e) => {
+        if (e.other.rigidBodyObject?.name === "hexagon") {
+          inTheAir.current = false;
+          landed.current = true;
+          const curVel = rb.current.linvel();
+          curVel.y = 0;
+          rb.current.setLinvel(curVel);
+        }
+      }}
+      gravityScale={gameStage === "game" ? 2.5 : 0}
+      name={player ? "player" : "other"}
     >
+      <group ref={cameraPosition} position={[0, 8, -16]}></group>
       <Character
         scale={0.42}
         color={state?.state.profile?.color}
         name={state?.state.profile?.name}
         position-y={0.2}
+        animation={animation}
       />
       <CapsuleCollider args={[0.1, 0.38]} position={[0, 0.6, 0]} />
     </RigidBody>

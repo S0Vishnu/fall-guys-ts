@@ -5,6 +5,13 @@ import {
   useMultiplayerState,
 } from "playroomkit";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { randFloat } from "three/src/math/MathUtils.js";
+import {
+  HEX_X_SPACING,
+  HEX_Z_SPACING,
+  NB_COLUMNS,
+  NB_ROWS,
+} from "../components/GameArena";
 
 // Define possible game states
 type GameState = "lobby" | "countdown" | "game" | "winner";
@@ -15,7 +22,8 @@ interface GameStateContext {
   timer?: number;
   players?: any[];
   host?: boolean;
-  startGame?: any;
+  startGame?: () => void;
+  winner?: string | null;
 }
 
 const NEXT_STAGE: { [key in GameState]: GameState } = {
@@ -44,6 +52,7 @@ export const GameStateProvider = ({
     "gameStage",
     "lobby"
   );
+  const [winner, setWinner] = useMultiplayerState("winner", null);
   const [timer, setTimer] = useMultiplayerState("timer", TIMER_STAGE.lobby);
   const [players, setPlayers] = useState<any[]>([]);
   const [soloGame, setSoloGame] = useState(false);
@@ -68,7 +77,19 @@ export const GameStateProvider = ({
 
       // Construct a new player object containing both state and controls
       const newPlayer = { state, controls };
-
+      if (host) {
+        state.setState("dead", gameStage === "game");
+        state.setState("startingPos", {
+          x: randFloat(
+            (-(NB_COLUMNS - 1) * HEX_X_SPACING) / 2,
+            ((NB_COLUMNS - 1) * HEX_X_SPACING) / 2
+          ),
+          z: randFloat(
+            (-(NB_ROWS - 1) * HEX_Z_SPACING) / 2,
+            ((NB_ROWS - 1) * HEX_Z_SPACING) / 2
+          ),
+        });
+      }
       // Update the players state by adding the new player
       setPlayers((players) => [...players, newPlayer]);
 
@@ -113,7 +134,7 @@ export const GameStateProvider = ({
           const playersAlive = players.filter((p) => !p.state.getState("dead"));
           if (playersAlive.length < (soloGame ? 1 : 2)) {
             setGameState("winner", true);
-            setGameState(playersAlive[0]?.state.state.profile, true);
+            setWinner(playersAlive[0]?.state.state.profile, true);
             newTime = TIMER_STAGE.winner;
           }
         }
@@ -141,6 +162,7 @@ export const GameStateProvider = ({
         players,
         host,
         startGame,
+        winner
       }}
     >
       {children}

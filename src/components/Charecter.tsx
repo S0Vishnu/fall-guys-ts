@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Group } from "three";
-import { useAnimations, useGLTF } from "@react-three/drei";
-import { useGraph } from "@react-three/fiber";
+import { Text, useAnimations, useGLTF } from "@react-three/drei";
+import { useFrame, useGraph } from "@react-three/fiber";
 import { SkeletonUtils } from "three-stdlib";
 
 interface CharacterProps {
-  animation?: "wave" | "FG_Run_A" | "FG_Walk_A" | "FG_Idle_A"; // Possible animations
+  animation?: "idle" | "jump_up" | "fall" | "run" | "wave"; // Possible animations
   color?: string; // Material color
   name?: string; // Name of the character
   [key: string]: unknown; // Allow additional props
@@ -18,6 +18,7 @@ export const Character: React.FC<CharacterProps> = ({
   ...props
 }) => {
   const group = useRef<Group>(null);
+  const textRef = useRef<Group>(null);
   const { scene, animations } = useGLTF(
     "/models/character.glb",
     "draco/gltf/"
@@ -38,8 +39,38 @@ export const Character: React.FC<CharacterProps> = ({
     };
   }, [animation, actions]);
 
+  useFrame(({ camera }) => {
+    if (textRef.current) {
+      textRef.current.lookAt(camera.position);
+    }
+  });
+
   return (
     <group ref={group} {...props} dispose={null}>
+      <group ref={textRef}>
+        <Text
+          position-y={2.8}
+          fontSize={0.5}
+          anchorX={"center"}
+          anchorY={"middle"}
+          font="fonts/PaytoneOne-Regular.ttf"
+        >
+          {name}
+          <meshBasicMaterial color="white" />
+        </Text>
+        <Text
+          position-y={2.78}
+          position-x={0.02}
+          position-z={-0.02}
+          fontSize={0.5}
+          anchorX={"center"}
+          anchorY={"middle"}
+          font="fonts/PaytoneOne-Regular.ttf"
+        >
+          {name}
+          <meshBasicMaterial color="black" />
+        </Text>
+      </group>
       <group name="Scene">
         <group name="fall_guys">
           <primitive object={nodes._rootJoint} />

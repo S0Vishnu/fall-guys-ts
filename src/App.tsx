@@ -37,7 +37,7 @@ function App() {
               style={{ height: "100vh", width: "100vw" }}
             >
               <color attach="background" args={["#041c0b"]} />
-              <Physics debug>
+              <Physics>
                 <Experience />
               </Physics>
             </Canvas>
